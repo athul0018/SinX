@@ -1,0 +1,11 @@
+.env
+token.pickle
+drive_token.pickle
+__pycache__/
+*.pyc
+*.pyo
+*.log
+
+credentials.json
+service_account.json
+google_credentials.json
