@@ -1,0 +1,11 @@
+{
+  "name": "gsb-bot",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Monorepo root. Next.js PWA: apps/web. FastAPI: apps/api.",
+  "scripts": {
+    "build": "npm run build --prefix apps/web",
+    "dev": "npm run dev --prefix apps/web",
+    "start": "npm run start --prefix apps/web"
+  }
+}
