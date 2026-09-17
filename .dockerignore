@@ -1,0 +1,15 @@
+.git
+.gitignore
+.env
+*.pickle
+credentials.json
+service_account.json
+google_credentials.json
+__pycache__
+*.pyc
+*.pyo
+*.log
+.venv
+venv
+README.md
+SHEET_SETUP.md

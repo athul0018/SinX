@@ -5,6 +5,7 @@ import io
 import os
 import pickle
 
+import google.auth
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseUpload
@@ -24,17 +25,52 @@ class DriveUploader:
         self._lock = asyncio.Lock()
 
     def _build_sync(self):
+        """Create Google Drive service.
+
+        Cloud Run:
+            Uses Application Default Credentials.
+
+        Local PC:
+            Uses the existing OAuth flow.
+        """
+
+        # -----------------------------
+        # CLOUD RUN
+        # -----------------------------
+
+        if os.getenv("K_SERVICE"):
+            credentials, _ = google.auth.default(
+                scopes=DRIVE_SCOPES
+            )
+
+            return build(
+                "drive",
+                "v3",
+                credentials=credentials,
+                cache_discovery=False,
+            )
+
+        # -----------------------------
+        # LOCAL WINDOWS
+        # -----------------------------
+
         credentials = None
 
         if os.path.exists("drive_token.pickle"):
             try:
                 with open("drive_token.pickle", "rb") as f:
                     credentials = pickle.load(f)
+
             except Exception:
                 credentials = None
 
-        if credentials and credentials.expired and credentials.refresh_token:
+        if (
+            credentials
+            and credentials.expired
+            and credentials.refresh_token
+        ):
             from google.auth.transport.requests import Request
+
             credentials.refresh(Request())
 
         if not credentials or not credentials.valid:
@@ -42,6 +78,7 @@ class DriveUploader:
                 "credentials.json",
                 DRIVE_SCOPES,
             )
+
             credentials = flow.run_local_server(
                 host="localhost",
                 port=8081,
