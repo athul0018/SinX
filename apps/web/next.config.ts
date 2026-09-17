@@ -1,17 +1,8 @@
 import type { NextConfig } from "next";
 
-const apiOrigin = process.env.API_PROXY_URL || "http://127.0.0.1:8000";
-
+/** API traffic is proxied at runtime via app/api/[...path]/route.ts (uses API_PROXY_URL). */
 const nextConfig: NextConfig = {
   output: "standalone",
-  async rewrites() {
-    return [
-      {
-        source: "/api/:path*",
-        destination: `${apiOrigin}/api/:path*`,
-      },
-    ];
-  },
 };
 
 export default nextConfig;

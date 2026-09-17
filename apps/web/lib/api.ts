@@ -66,6 +66,10 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
     } catch {
       /* ignore */
     }
+    if (res.status === 404 && detail.startsWith("Request failed")) {
+      detail =
+        "Not found (404). Check API_PROXY_URL on Vercel, deploy the API, or clear site data if an old project id is saved.";
+    }
     throw new Error(typeof detail === "string" ? detail : JSON.stringify(detail));
   }
   if (res.status === 204) return undefined as T;
