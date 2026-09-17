@@ -3,9 +3,11 @@
   "private": true,
   "version": "0.0.0",
   "description": "Monorepo root. Next.js PWA: apps/web. FastAPI: apps/api.",
+  "packageManager": "pnpm@10.34.3",
   "scripts": {
-    "build": "npm run build --prefix apps/web",
+    "postinstall": "npm install --prefix apps/web --no-audit --no-fund",
     "dev": "npm run dev --prefix apps/web",
+    "build": "npm run build --prefix apps/web",
     "start": "npm run start --prefix apps/web"
   }
 }
