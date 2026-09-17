@@ -10,8 +10,7 @@ app = FastAPI(title="GSB Site API", version="0.1.1")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.cors_origin_list
-    + ["http://localhost:3000", "http://127.0.0.1:3000"],
+    allow_origins=settings.cors_origin_list,
     allow_credentials=True,
     allow_methods=["GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["Authorization", "Content-Type"],

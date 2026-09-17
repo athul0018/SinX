@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { api, getSiteId, getToken, me } from "@/lib/api";
+import { api, getSiteId, me } from "@/lib/api";
 
 type Row = {
   id: string;
@@ -44,7 +44,6 @@ export default function MasterPage() {
     const siteId = getSiteId();
     if (!siteId) return;
     const res = await fetch(`${API}/api/v1/sites/${siteId}/master/template`, {
-      headers: { Authorization: `Bearer ${getToken() || ""}` },
       credentials: "include",
     });
     if (!res.ok) {

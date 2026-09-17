@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { GsbLogo } from "@/components/Logo";
-import { User, api, clearToken, getSiteId, me, setSiteId } from "@/lib/api";
+import { User, api, getSiteId, me, setSiteId } from "@/lib/api";
 
 type NavItem = { href: string; label: string; owner?: boolean; icon: string };
 
@@ -33,6 +33,10 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     me()
       .then((u) => {
+        if (u.must_change_password) {
+          window.location.href = "/change-password";
+          return;
+        }
         setUser(u);
         const current = getSiteId();
         if (!current && u.sites[0]) setSiteId(u.sites[0].id);
@@ -79,7 +83,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     } catch {
       /* ignore */
     }
-    clearToken();
     window.location.href = "/login";
   }
 

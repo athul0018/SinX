@@ -31,9 +31,18 @@ def seed() -> None:
             )
             db.add(site)
             db.flush()
+        elif site.name != settings.initial_site_name:
+            site.name = settings.initial_site_name
 
         email = settings.initial_owner_email.lower().strip()
         user = db.query(User).filter(User.email == email).first()
+        if not user:
+            user = (
+                db.query(User)
+                .filter(User.company_id == company.id, User.global_role == UserRole.OWNER.value)
+                .order_by(User.created_at)
+                .first()
+            )
         if not user:
             user = User(
                 company_id=company.id,
@@ -45,6 +54,15 @@ def seed() -> None:
             )
             db.add(user)
             db.flush()
+        else:
+            user.email = email
+            user.name = settings.initial_owner_name
+            user.password_hash = hash_password(settings.initial_owner_password)
+            user.is_active = True
+            user.global_role = UserRole.OWNER.value
+
+        weak = settings.initial_owner_password.strip().lower() in {"changeme", "change-me", "change_me"}
+        user.must_change_password = weak
 
         link = (
             db.query(SiteUser)
@@ -56,9 +74,7 @@ def seed() -> None:
 
         db.commit()
         print(f"Seeded company={company.name} site={site.code} owner={user.email}")
-        if settings.initial_owner_password == "changeme":
-            print("WARNING: Change INITIAL_OWNER_PASSWORD and JWT_SECRET before production.")
-        if settings.initial_owner_password == "changeme":
+        if weak:
             print("WARNING: Change INITIAL_OWNER_PASSWORD and JWT_SECRET before production.")
     except Exception:
         db.rollback()

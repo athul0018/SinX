@@ -45,7 +45,11 @@ def dashboard(
     evening_done = sum(1 for r in rows if r.evening_type)
     present = sum(1 for r in rows if r.morning_status == "Present")
     ot_total = sum((r.ot_hours or Decimal("0")) for r in rows)
-    plans = db.query(DailyPlan).filter(DailyPlan.site_id == site.id, DailyPlan.plan_code != "IDLE").all()
+    plans = db.query(DailyPlan).filter(
+        DailyPlan.site_id == site.id,
+        DailyPlan.plan_code != "IDLE",
+        DailyPlan.work_date == day,
+    ).all()
     completed = sum(1 for p in plans if p.status == "Completed")
     hold = sum(1 for p in plans if p.status == "Hold")
     progressing = sum(1 for p in plans if p.status == "In progressing")

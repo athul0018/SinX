@@ -1,26 +1,31 @@
 from __future__ import annotations
 
-from time import time
-from uuid import uuid4
+from datetime import UTC, datetime, timedelta
 
-_revoked: dict[str, float] = {}
+from sqlalchemy.orm import Session
 
-
-def new_jti() -> str:
-    return uuid4().hex
+from app.models import RevokedSession
 
 
-def revoke_jti(jti: str, ttl_seconds: int) -> None:
-    _revoked[jti] = time() + ttl_seconds
+def revoke_jti(db: Session, jti: str, ttl_seconds: int) -> None:
+    expires_at = datetime.now(UTC) + timedelta(seconds=ttl_seconds)
+    db.merge(RevokedSession(jti=jti, expires_at=expires_at))
+    _purge_expired(db)
 
 
-def is_revoked(jti: str | None) -> bool:
+def is_revoked(db: Session, jti: str | None) -> bool:
     if not jti:
         return False
-    expires = _revoked.get(jti)
-    if expires is None:
+    row = db.get(RevokedSession, jti)
+    if not row:
         return False
-    if time() > expires:
-        _revoked.pop(jti, None)
+    if row.expires_at <= datetime.now(UTC):
+        db.delete(row)
         return False
     return True
+
+
+def _purge_expired(db: Session) -> None:
+    db.query(RevokedSession).filter(RevokedSession.expires_at <= datetime.now(UTC)).delete(
+        synchronize_session=False
+    )

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from fastapi import APIRouter, Cookie, Depends, Header, HTTPException, Request, Response, status
 from jwt import InvalidTokenError
 from sqlalchemy.orm import Session, joinedload
@@ -7,8 +9,8 @@ from app.db import get_db
 from app.deps import AuthContext, accessible_site_ids, get_auth
 from app.models import Company, Site, User
 from app.ratelimit import check_login_rate
-from app.schemas import LoginIn, SiteOut, TokenOut, UserOut
-from app.security import create_token, decode_token, verify_password
+from app.schemas import ChangePasswordIn, LoginIn, SiteOut, TokenOut, UserOut
+from app.security import create_token, decode_token, hash_password, verify_password
 from app.sessions import revoke_jti
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -25,6 +27,7 @@ def user_payload(db: Session, user: User, company: Company) -> UserOut:
         email=user.email,
         global_role=user.global_role,
         is_active=user.is_active,
+        must_change_password=bool(user.must_change_password),
         sites=[SiteOut.model_validate(s) for s in sites],
     )
 
@@ -43,7 +46,7 @@ def set_session_cookie(response: Response, token: str) -> None:
 
 @router.post("/login", response_model=TokenOut)
 def login(body: LoginIn, request: Request, response: Response, db: Session = Depends(get_db)) -> TokenOut:
-    check_login_rate(request, str(body.email))
+    check_login_rate(db, request, str(body.email))
     user = (
         db.query(User)
         .options(joinedload(User.company))
@@ -52,9 +55,35 @@ def login(body: LoginIn, request: Request, response: Response, db: Session = Dep
     )
     if not user or not user.is_active or not verify_password(body.password, user.password_hash):
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Invalid email or password")
+    if settings.enforce_secure_defaults and verify_password(
+        settings.initial_owner_password, user.password_hash
+    ):
+        raise HTTPException(
+            status.HTTP_403_FORBIDDEN,
+            "Default password is disabled in production. Set a new INITIAL_OWNER_PASSWORD and update the owner account.",
+        )
     token = create_token(str(user.id), user.global_role, str(user.company_id))
     set_session_cookie(response, token)
     return TokenOut(token=token, user=user_payload(db, user, user.company))
+
+
+@router.post("/change-password", response_model=UserOut)
+def change_password(
+    body: ChangePasswordIn,
+    response: Response,
+    db: Session = Depends(get_db),
+    auth: AuthContext = Depends(get_auth),
+) -> UserOut:
+    if not verify_password(body.current_password, auth.user.password_hash):
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Current password is incorrect")
+    if verify_password(body.new_password, auth.user.password_hash):
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Choose a different password")
+    auth.user.password_hash = hash_password(body.new_password)
+    auth.user.must_change_password = False
+    token = create_token(str(auth.user.id), auth.user.global_role, str(auth.company.id))
+    set_session_cookie(response, token)
+    db.flush()
+    return user_payload(db, auth.user, auth.company)
 
 
 @router.post("/logout")
@@ -74,7 +103,7 @@ def logout(
             payload = decode_token(raw)
             jti = payload.get("jti")
             if jti:
-                revoke_jti(str(jti), settings.jwt_expire_hours * 3600)
+                revoke_jti(db, str(jti), settings.jwt_expire_hours * 3600)
         except (InvalidTokenError, ValueError, KeyError):
             pass
     response.delete_cookie(settings.cookie_name, path="/")

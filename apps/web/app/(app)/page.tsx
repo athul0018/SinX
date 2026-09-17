@@ -167,7 +167,7 @@ export default function HomePage() {
                       <i className="dot present" /> Present <b>{dash.present}</b>
                     </li>
                     <li>
-                      <i className="dot unmarked" /> Active <b>{dash.active_employees}</b>
+                      <i className="dot unmarked" /> Not marked / absent <b>{Math.max(0, dash.active_employees - dash.present)}</b>
                     </li>
                   </ul>
                 </div>

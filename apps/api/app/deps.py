@@ -52,7 +52,7 @@ def get_auth(
     user = db.get(User, uuid.UUID(payload["sub"]))
     if not user or not user.is_active:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "User inactive or missing")
-    if is_revoked(payload.get("jti")):
+    if is_revoked(db, payload.get("jti")):
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Session expired")
     company = db.get(Company, user.company_id)
     if not company:
@@ -61,6 +61,8 @@ def get_auth(
 
 
 def require_owner(auth: AuthContext = Depends(get_auth)) -> AuthContext:
+    if auth.user.must_change_password:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Change your password before using this feature")
     if not auth.is_owner:
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Owner access required")
     return auth
@@ -89,4 +91,6 @@ def require_site(
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Site not found")
     if site.id not in accessible_site_ids(db, auth):
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Site not found")
+    if auth.user.must_change_password:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Change your password before using this feature")
     return site

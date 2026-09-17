@@ -2,12 +2,13 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from app.db import get_db
 from app.deps import AuthContext, get_auth, require_site
 from app.models import AuditLog, Employee, EmployeeStatus, Site
+from app.pagination import list_limit, list_offset
 from app.schemas import EmployeeIn, EmployeeOut, EmployeeTransferIn
 
 router = APIRouter(prefix="/sites/{site_id}/employees", tags=["employees"])
@@ -17,11 +18,15 @@ router = APIRouter(prefix="/sites/{site_id}/employees", tags=["employees"])
 def list_employees(
     db: Session = Depends(get_db),
     site: Site = Depends(require_site),
+    limit: int = Depends(list_limit),
+    offset: int = Depends(list_offset),
 ) -> list[Employee]:
     return (
         db.query(Employee)
         .filter(Employee.site_id == site.id)
         .order_by(Employee.employee_code)
+        .offset(offset)
+        .limit(limit)
         .all()
     )
 

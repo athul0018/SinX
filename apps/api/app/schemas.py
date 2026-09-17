@@ -27,7 +27,13 @@ class UserOut(BaseModel):
     email: EmailStr
     global_role: str
     is_active: bool
+    must_change_password: bool = False
     sites: list[SiteOut]
+
+
+class ChangePasswordIn(BaseModel):
+    current_password: str
+    new_password: str = Field(min_length=8)
 
 
 class TokenOut(BaseModel):

@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 
 from app.db import get_db
 from app.deps import AuthContext, get_auth, require_owner, require_site
+from app.pagination import list_limit, list_offset
 from app.models import (
     Classification,
     Clarification,
@@ -145,6 +146,8 @@ def list_plans(
     db: Session = Depends(get_db),
     auth: AuthContext = Depends(get_auth),
     site: Site = Depends(require_site),
+    limit: int = Depends(list_limit),
+    offset: int = Depends(list_offset),
 ) -> list[PlanOut]:
     query = db.query(DailyPlan).filter(DailyPlan.site_id == site.id, DailyPlan.plan_code != "IDLE")
     if open_only:
@@ -152,7 +155,7 @@ def list_plans(
     else:
         day = work_date or datetime.now(auth.tz()).date()
         query = query.filter(DailyPlan.work_date == day)
-    plans = query.order_by(DailyPlan.planned_at).all()
+    plans = query.order_by(DailyPlan.planned_at).offset(offset).limit(limit).all()
     return [to_plan_out(plan) for plan in plans]
 
 

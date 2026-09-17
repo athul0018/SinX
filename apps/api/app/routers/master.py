@@ -11,6 +11,7 @@ from app.db import get_db
 from app.deps import require_owner, require_site
 from app.excel_master import master_template_bytes, parse_master_excel
 from app.models import MasterEquipment, Site
+from app.pagination import list_limit, list_offset
 from app.schemas import EquipmentIn, EquipmentOut
 
 router = APIRouter(prefix="/sites/{site_id}/master", tags=["master"])
@@ -20,11 +21,15 @@ router = APIRouter(prefix="/sites/{site_id}/master", tags=["master"])
 def list_master(
     db: Session = Depends(get_db),
     site: Site = Depends(require_site),
+    limit: int = Depends(list_limit),
+    offset: int = Depends(list_offset),
 ) -> list[MasterEquipment]:
     return (
         db.query(MasterEquipment)
         .filter(MasterEquipment.site_id == site.id)
         .order_by(MasterEquipment.po_ref, MasterEquipment.equipment_tag)
+        .offset(offset)
+        .limit(limit)
         .all()
     )
 

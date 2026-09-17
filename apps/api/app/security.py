@@ -6,7 +6,7 @@ import bcrypt
 import jwt
 
 from app.config import settings
-from app.sessions import new_jti
+from app.jti import new_jti
 
 
 def hash_password(password: str) -> str:

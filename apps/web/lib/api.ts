@@ -1,6 +1,5 @@
 const API = process.env.NEXT_PUBLIC_API_URL || "";
 
-const TOKEN_KEY = "gsb_token";
 const SITE_KEY = "gsb_site";
 
 export type Site = { id: string; name: string; code: string; status: string };
@@ -11,21 +10,9 @@ export type User = {
   email: string;
   global_role: "OWNER" | "AUTHORIZED";
   is_active: boolean;
+  must_change_password?: boolean;
   sites: Site[];
 };
-
-export function getToken(): string | null {
-  if (typeof window === "undefined") return null;
-  return sessionStorage.getItem(TOKEN_KEY);
-}
-
-export function setToken(token: string) {
-  sessionStorage.setItem(TOKEN_KEY, token);
-}
-
-export function clearToken() {
-  sessionStorage.removeItem(TOKEN_KEY);
-}
 
 export function getSiteId(): string | null {
   if (typeof window === "undefined") return null;
@@ -53,8 +40,6 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
   if (!headers.has("Content-Type") && init.body && !isForm) {
     headers.set("Content-Type", "application/json");
   }
-  const token = getToken();
-  if (token) headers.set("Authorization", `Bearer ${token}`);
   const res = await fetch(`${API}${path}`, {
     ...init,
     headers,
@@ -69,7 +54,6 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
       detail = path.includes("/auth/login") ? "Invalid email or password" : "Not authenticated";
     }
     if (!path.includes("/auth/login")) {
-      clearToken();
       if (typeof window !== "undefined") window.location.href = "/login";
     }
     throw new Error(detail);
@@ -95,13 +79,19 @@ export function login(email: string, password: string) {
   });
 }
 
+export function changePassword(current_password: string, new_password: string) {
+  return api<User>("/api/v1/auth/change-password", {
+    method: "POST",
+    body: JSON.stringify({ current_password, new_password }),
+  });
+}
+
 export function me() {
   return api<User>("/api/v1/auth/me");
 }
 
 export async function downloadExcel(path: string, filename: string) {
   const res = await fetch(`${API}${path}`, {
-    headers: { Authorization: `Bearer ${getToken() || ""}` },
     credentials: "include",
   });
   if (!res.ok) {

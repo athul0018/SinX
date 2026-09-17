@@ -55,6 +55,15 @@ export default function ProgressPage() {
   const [idleManpower, setIdleManpower] = useState("");
   const [idleReason, setIdleReason] = useState("");
   const [idleRemarks, setIdleRemarks] = useState("");
+  const [photos, setPhotos] = useState<File[]>([]);
+
+  function onPhotoPick(files: FileList | null) {
+    if (!files?.length) {
+      setPhotos([]);
+      return;
+    }
+    setPhotos(Array.from(files).slice(0, 2));
+  }
 
   function load(keepId = "") {
     const siteId = getSiteId();
@@ -134,7 +143,9 @@ export default function ProgressPage() {
       body.append("has_issue", issue);
       body.append("issue_description", issueDesc);
       body.append("remarks", remarks);
+      photos.forEach((file) => body.append("photos", file));
       await api(`/api/v1/sites/${siteId}/progress`, { method: "POST", body });
+      setPhotos([]);
       load(status === "completed" ? "" : planId);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Save failed");
@@ -236,6 +247,20 @@ export default function ProgressPage() {
                           <div style={{ height: 8 }} />
                           <label>Remarks</label>
                           <textarea value={remarks} onChange={(e) => setRemarks(e.target.value)} />
+                          <div style={{ height: 8 }} />
+                          <label>Photos (optional, max 2)</label>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            multiple
+                            onChange={(e) => onPhotoPick(e.target.files)}
+                          />
+                          <p className="muted">
+                            Requires Google Drive setup on the server. You can save without photos if upload is unavailable.
+                          </p>
+                          {photos.length ? (
+                            <p className="muted">{photos.length} file(s) selected: {photos.map((f) => f.name).join(", ")}</p>
+                          ) : null}
                           <div style={{ height: 12 }} />
                           <button className="btn" type="submit">
                             Save progress

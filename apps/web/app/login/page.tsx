@@ -2,7 +2,7 @@
 
 import { FormEvent, useState } from "react";
 import { GsbLogo } from "@/components/Logo";
-import { getSiteId, login, setSiteId, setToken } from "@/lib/api";
+import { getSiteId, login, setSiteId } from "@/lib/api";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -16,12 +16,11 @@ export default function LoginPage() {
     setError("");
     try {
       const result = await login(email, password);
-      setToken(result.token);
       const saved = getSiteId();
       const match = result.user.sites.find((s) => s.id === saved);
       if (match) setSiteId(match.id);
       else if (result.user.sites[0]) setSiteId(result.user.sites[0].id);
-      window.location.href = "/";
+      window.location.href = result.user.must_change_password ? "/change-password" : "/";
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed");
     } finally {

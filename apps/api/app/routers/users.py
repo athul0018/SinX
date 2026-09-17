@@ -42,6 +42,7 @@ def list_users(
                 email=user.email,
                 global_role=user.global_role,
                 is_active=user.is_active,
+                must_change_password=bool(user.must_change_password),
                 sites=[SiteOut.model_validate(s) for s in site_rows],
             )
         )
@@ -83,6 +84,7 @@ def create_user(
         email=user.email,
         global_role=user.global_role,
         is_active=user.is_active,
+        must_change_password=False,
         sites=[SiteOut.model_validate(s) for s in sites],
     )
 
