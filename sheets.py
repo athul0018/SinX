@@ -9,6 +9,7 @@ import time
 from typing import Any, Callable, TypeVar
 
 import gspread
+import google.auth
 from google.auth.transport.requests import Request
 from google_auth_oauthlib.flow import InstalledAppFlow
 
@@ -54,25 +55,31 @@ class SheetsRepository:
     # =========================================================
     # GOOGLE AUTHENTICATION
     # =========================================================
-
     def _authorize_sync(self) -> gspread.Client:
-        """Create or refresh the Google Sheets client."""
+        """Create Google Sheets client."""
 
+        # Cloud Run authentication
+        if os.getenv("K_SERVICE"):
+            credentials, _ = google.auth.default(
+                scopes=SCOPES
+            )
+
+            return gspread.authorize(credentials)
+
+        # Local Windows authentication
         credentials = None
 
-        # Existing saved OAuth token
         if os.path.exists("token.pickle"):
             try:
                 with open("token.pickle", "rb") as token:
                     credentials = pickle.load(token)
+
             except Exception:
                 log.warning(
-                    "Could not load token.pickle. "
-                    "Starting OAuth authentication."
+                    "Could not load token.pickle."
                 )
                 credentials = None
 
-        # Refresh existing credentials
         if (
             credentials
             and credentials.expired
@@ -80,10 +87,7 @@ class SheetsRepository:
         ):
             credentials.refresh(Request())
 
-        # First-time authentication
         if not credentials or not credentials.valid:
-            log.info("Starting Google OAuth authentication.")
-
             flow = InstalledAppFlow.from_client_secrets_file(
                 "credentials.json",
                 SCOPES,
@@ -99,7 +103,7 @@ class SheetsRepository:
                 pickle.dump(credentials, token)
 
         return gspread.authorize(credentials)
-
+    
     async def _client(self) -> gspread.Client:
         """Return the cached Google client."""
 
@@ -113,7 +117,7 @@ class SheetsRepository:
                 )
 
         return self._client_obj
-
+        
     # =========================================================
     # WORKSHEET ACCESS
     # =========================================================

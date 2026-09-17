@@ -1,11 +1,24 @@
 .env
+
 token.pickle
 drive_token.pickle
+token_backup.pickle
+*.pickle
+
+credentials.json
+service_account.json
+google_credentials.json
+
 __pycache__/
 *.pyc
 *.pyo
 *.log
 
-credentials.json
-service_account.json
-google_credentials.json
+.venv/
+venv/
+
+apps/api/.venv/
+apps/web/node_modules/
+apps/web/.next/
+apps/web/.env.local
+apps/api/.env
